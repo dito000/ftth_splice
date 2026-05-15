@@ -1,0 +1,78 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>{{ closure.name }}</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+{% set data = closure.data %}
+
+<h1>{{ closure.data.closureName }}</h1>
+
+<div class="toolbar">
+
+<a class="btn"
+href="/closure/{{ closure.id }}/edit">
+Edit
+</a>
+
+<a class="btn"
+href="/">
+Dashboard
+</a>
+
+</div>
+
+<div class="card">
+
+<div class="header">
+Splice Matrix
+</div>
+
+<table>
+
+<thead>
+<tr>
+<th>IN Buffer</th>
+<th>OUT Cable</th>
+<th>OUT Buffer</th>
+<th>Description</th>
+</tr>
+</thead>
+
+<tbody>
+
+{% for m in data.mappings %}
+
+<tr>
+
+<td>
+Buffer {{ m.buffer }}
+</td>
+
+<td>
+{{ m.outCable }}
+</td>
+
+<td>
+Buffer {{ m.outBuffer }}
+</td>
+
+<td>
+{{ m.description }}
+</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+</div>
+
+</body>
+</html>

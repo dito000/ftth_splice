@@ -1,0 +1,315 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>ODF Manager</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<h1>ODF Manager</h1>
+
+<div class="toolbar">
+
+<input
+id="odfName"
+placeholder="ODF Name"
+value="{{ odf.name if odf else '' }}">
+
+<select id="portCount">
+<option value="12">12 Ports</option>
+<option value="24">24 Ports</option>
+<option value="48">48 Ports</option>
+<option value="96">96 Ports</option>
+<option value="144">144 Ports</option>
+</select>
+
+<button onclick="generateODF()">
+Generate ODF
+</button>
+
+<button onclick="saveODF()">
+Save ODF
+</button>
+
+<a class="btn" href="/">
+Dashboard
+</a>
+
+</div>
+
+<div id="workspace">
+
+<div class="empty">
+Generate an ODF to begin.
+</div>
+
+</div>
+
+<script>
+
+let odfId =
+{{ odf.id if odf else 'null' }};
+
+const OLTS = [
+"OLT-HUAWEI-01",
+"OLT-HUAWEI-02",
+"OLT-NOKIA-01",
+"OLT-ZTE-01"
+];
+
+const CLOSURES = [
+"HH-101 Main Street",
+"HH-205 Airport Road",
+"CAB-17 Downtown",
+"SPL-002 North Route"
+];
+
+let assignmentCount = 0;
+
+function generateODF(){
+
+const odfName =
+document.getElementById(
+"odfName"
+).value || "Unnamed ODF";
+
+const ports =
+parseInt(
+document.getElementById(
+"portCount"
+).value
+);
+
+document.getElementById(
+"workspace"
+).innerHTML = `
+
+<div class="section">
+
+<div class="section-header">
+${odfName} — OLT Ports
+</div>
+
+<div class="section-body">
+
+<table>
+
+<thead>
+
+<tr>
+<th>Port</th>
+<th>OLT</th>
+<th>PON Port</th>
+<th>Description</th>
+</tr>
+
+</thead>
+
+<tbody>
+
+${generatePortRows(ports)}
+
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+
+<div class="section">
+
+<div class="section-header">
+Feeder Assignments
+</div>
+
+<div class="section-body">
+
+<button
+class="small-btn"
+onclick="addAssignment()">
+
+Add Feeder Assignment
+
+</button>
+
+<div class="
+assignment-container
+"
+id="assignmentContainer">
+
+</div>
+
+</div>
+
+</div>
+`;
+}
+
+function generatePortRows(total){
+
+let html = "";
+
+for(let i=1;i<=total;i++){
+
+html += `
+
+<tr>
+
+<td>${i}</td>
+
+<td>
+
+<select>
+
+${OLTS.map(
+o=>`
+<option>${o}</option>
+`
+).join("")}
+
+</select>
+
+</td>
+
+<td>
+
+<select>
+
+${generatePonPorts()}
+
+</select>
+
+</td>
+
+<td>
+
+<input
+placeholder="
+OLT Side Description
+"
+style="width:100%">
+
+</td>
+
+</tr>
+`;
+}
+
+return html;
+}
+
+function generatePonPorts(){
+
+let html = "";
+
+for(let shelf=1;shelf<=2;shelf++){
+
+for(let slot=1;slot<=16;slot++){
+
+html += `
+<option>
+GPON ${shelf}/${slot}
+</option>
+`;
+}
+}
+
+return html;
+}
+
+function addAssignment(){
+
+assignmentCount++;
+
+const row =
+document.createElement("div");
+
+row.className =
+"assignment-row";
+
+row.innerHTML = `
+
+<input
+placeholder="
+Section / Panel
+"
+value="SP${assignmentCount}">
+
+<input
+placeholder="
+Cable Name
+">
+
+<input
+placeholder="
+Buffers
+"
+value="
+Example: 1-4
+">
+
+<input list="
+closure-list
+"
+placeholder="
+Destination Closure
+">
+
+<button
+class="small-btn"
+onclick="this.parentElement.remove()">
+
+Remove
+
+</button>
+`;
+
+document.getElementById(
+"assignmentContainer"
+).appendChild(row);
+}
+
+async function saveODF(){
+
+const payload = {
+id: odfId,
+name: document.getElementById(
+"odfName"
+).value,
+html: document.body.innerHTML
+};
+
+const r = await fetch(
+"/api/odf/save",
+{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body: JSON.stringify(payload)
+}
+);
+
+const j = await r.json();
+
+odfId = j.id;
+
+alert("ODF saved.");
+}
+
+</script>
+
+<datalist id="closure-list">
+
+${CLOSURES.map(
+c=>`
+<option value="${c}">
+`
+).join("")}
+
+</datalist>
+
+</body>
+</html>

@@ -1,0 +1,1064 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Closure Editor</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<h1>Closure Editor</h1>
+
+<div class="toolbar">
+
+<input id="closureName"
+placeholder="Closure Name"
+
+onchange="
+workspaceState.closureName =
+this.value
+">
+
+<select id="inSize">
+<option>48</option>
+<option>96</option>
+<option selected>144</option>
+<option>288</option>
+</select>
+
+<button onclick="createInCable()">
+Create IN Cable
+</button>
+
+<select id="outCableSize">
+
+<option value="12">12F</option>
+<option value="24">24F</option>
+<option value="48" selected>48F</option>
+<option value="96">96F</option>
+<option value="144">144F</option>
+<option value="288">288F</option>
+
+</select>
+
+<button onclick="addOutCable()">
+Add OUT Cable
+</button>
+
+<button onclick="addThroughCable()">
+Add Through Cable
+</button>
+
+<button onclick="saveClosure()">
+Save
+</button>
+
+<a class="btn" href="/">
+Dashboard
+</a>
+
+</div>
+
+<div id="workspace"></div>
+
+<div class="pool-panel">
+
+<h3>OUT Cable Pools</h3>
+
+<div id="poolGrid"
+class="pool-grid"></div>
+
+</div>
+
+{% if closure %}
+
+<div class="card">
+
+<h3>Stored Database JSON</h3>
+
+<pre id="storedJson">
+{{ closure.data | tojson(indent=2) }}
+</pre>
+
+</div>
+
+{% endif %}
+
+<script>
+
+const COLORS = [
+["Blue","#2563eb"],
+["Orange","#f97316"],
+["Green","#16a34a"],
+["Brown","#8b5a2b"],
+["Slate","#9ca3af"],
+["White","#ffffff"],
+["Red","#dc2626"],
+["Black","#111111"],
+["Yellow","#facc15"],
+["Violet","#9333ea"],
+["Rose","#ec4899"],
+["Aqua","#06b6d4"]
+];
+
+let closureId =
+{{ closure.id if closure else 'null' }};
+
+let workspaceState =
+{% if closure %}
+{{ closure.data|tojson }}
+{% else %}
+{
+    closureName:"",
+
+    inCable:null,
+
+    outCables:[],
+
+    throughCables:[],
+
+    mappings:[]
+}
+{% endif %};
+
+function uid(){
+
+    return 'id-' +
+        Math.random()
+        .toString(36)
+        .substr(2,9) +
+
+        '-' +
+
+        Date.now();
+}
+
+function createInCable(){
+
+    workspaceState.closureName =
+        document.getElementById(
+            "closureName"
+        ).value;
+
+    workspaceState.inCable = {
+        size: parseInt(
+            document.getElementById(
+                "inSize"
+            ).value
+        )
+    };
+
+    renderAll();
+}
+
+function removeMapping(buffer){
+
+    workspaceState.mappings =
+        workspaceState.mappings.filter(
+            m=>m.buffer!==buffer
+        );
+
+    renderInCable();
+}
+
+function addOutCable(){
+
+    const id =
+        workspaceState.outCables.length + 1;
+
+    const size =
+        parseInt(
+            document.getElementById(
+                "outCableSize"
+            ).value
+        );
+
+workspaceState.outCables.push({
+    id:uid(),
+
+    cableName:"",
+
+    parentCable:"",
+
+    fromClosure:"",
+
+    toClosure:"",
+
+    role:"branch",
+
+    size:size
+});
+
+    renderPools();
+}
+
+function addThroughCable(){
+
+    const id =
+        workspaceState
+        .throughCables.length + 1;
+
+    const size =
+        parseInt(
+            document.getElementById(
+                "inSize"
+            ).value
+        );
+
+    workspaceState.throughCables.push({
+    id:uid(),
+
+    cableName:"",
+
+    parentCable:"",
+
+    fromClosure:"",
+
+    toClosure:"",
+
+    role:"through",
+
+    size:size
+});
+
+    const buffers = size / 12;
+
+    for(let b=1;b<=buffers;b++){
+
+        const existing =
+            workspaceState.mappings.find(
+                m=>m.buffer===b
+            );
+
+        if(!existing){
+
+            workspaceState.mappings.push({
+                buffer:b,
+                outCable:"THROUGH-"+id,
+                outBuffer:b,
+                label:
+                    "THROUGH-"+id+
+                    " • Buffer "+b,
+                description:"",
+                status:"Straight Through"
+            });
+        }
+    }
+
+    renderAll();
+}
+
+function renderAll(){
+
+    renderInCable();
+    renderPools();
+}
+
+function renderInCable(){
+
+    if(!workspaceState.inCable)
+        return;
+
+    if(!workspaceState.expandedBuffers)
+        workspaceState.expandedBuffers = [];
+
+    const buffers =
+        workspaceState.inCable.size / 12;
+
+    let html = `
+    <div class="card">
+
+    <div class="header">
+        IN Cable
+    </div>
+
+    <table>
+
+    <thead>
+    <tr>
+        <th></th>
+        <th>Buffer / Strand</th>
+        <th>#</th>
+        <th>Cable #</th>
+<th>Expand</th>
+<th>Status</th>
+<th>Mapping</th>
+<th>Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    `;
+
+    for(let b=1;b<=buffers;b++){
+
+        const color =
+            COLORS[(b-1)%12][1];
+
+        const start =
+            ((b-1)*12)+1;
+
+        const end =
+            b*12;
+
+        const expanded =
+            workspaceState
+            .expandedBuffers
+            .includes(b);
+
+        const mapping =
+            workspaceState.mappings.find(
+                m=>m.buffer===b
+            );
+
+        html += `
+        <tr class="buffer-row">
+
+        <td
+class="color-col"
+rowspan="${
+    expanded ? 13 : 1
+}">
+
+    <div class="fill-full"
+    style="
+        background:${color}
+    ">
+    </div>
+
+</td>
+
+        <td>
+            Buffer ${b}
+        </td>
+
+        <td>
+            ${b}
+        </td>
+
+        <td>
+            ${start}-${end}
+        </td>
+
+        <td>
+
+            <button
+            onclick="
+                toggleBuffer(${b})
+            ">
+
+            ${
+                expanded
+                ? "Collapse"
+                : "Expand"
+            }
+
+            </button>
+
+        </td>
+<td>
+
+<select
+onchange="
+    updateStatus(
+        ${b},
+        this.value
+    )
+">
+
+<option
+value="Open"
+
+${
+    !mapping ||
+    !mapping.status ||
+    mapping.status==="Open"
+    ? "selected"
+    : ""
+}>
+Open
+</option>
+
+<option
+value="Spliced"
+
+${
+    mapping &&
+    mapping.status==="Spliced"
+    ? "selected"
+    : ""
+}>
+Spliced
+</option>
+
+<option
+value="Straight Through"
+
+${
+    mapping &&
+    mapping.status==="Straight Through"
+    ? "selected"
+    : ""
+}>
+Straight Through
+</option>
+
+</select>
+
+</td>
+        <td>
+
+            <div
+            class="drop-zone"
+            ondragover="
+                event.preventDefault()
+            "
+            ondrop="
+                handleDrop(
+                    event,
+                    ${b}
+                )
+            ">
+
+            ${
+                mapping
+                ? `
+                <div class="badge">
+
+    <span>
+        ${mapping.label}
+    </span>
+
+    <button
+    class="remove-map"
+    onclick="
+        removeMapping(${b})
+    ">
+        ×
+    </button>
+
+</div>
+                `
+                : "Drop Buffer"
+            }
+
+            </div>
+
+        </td>
+
+        <td>
+
+            <input
+            value="${
+                mapping
+                ? mapping.description
+                : ""
+            }"
+            onchange="
+                updateDescription(
+                    ${b},
+                    this.value
+                )
+            ">
+
+        </td>
+
+        </tr>
+        `;
+
+        if(expanded){
+
+            for(let f=1;f<=12;f++){
+
+                const strandColor =
+                    COLORS[f-1][1];
+
+                const strandName =
+                    COLORS[f-1][0];
+
+                const cableFiber =
+                    ((b-1)*12)+f;
+
+                html += `
+                <tr class="strand-row">
+
+                
+
+                <td class="indent">
+
+                    <div class="
+                        strand-wrap
+                    ">
+
+                    <div class="
+                        strand-color
+                    "
+                    style="
+                        background:${strandColor}
+                    ">
+                    </div>
+
+                    ${strandName}
+
+                    </div>
+
+                </td>
+
+                <td>
+                    ${f}
+                </td>
+
+                <td>
+                    ${cableFiber}
+                </td>
+
+                <td></td>
+
+                <td>
+
+                    <div class="
+                        drop-zone
+                    ">
+
+                    Drop Strand
+
+                    </div>
+
+                </td>
+
+                <td>
+
+                    <input
+                    placeholder="
+                        Strand Description
+                    ">
+
+                </td>
+
+                </tr>
+                `;
+            }
+        }
+    }
+
+    html += `
+    </tbody>
+    </table>
+    </div>
+    `;
+
+    document.getElementById(
+        "workspace"
+    ).innerHTML = html;
+}
+
+function toggleBuffer(buffer){
+
+    if(!workspaceState.expandedBuffers)
+        workspaceState.expandedBuffers = [];
+
+    const index =
+        workspaceState
+        .expandedBuffers
+        .indexOf(buffer);
+
+    if(index > -1){
+
+        workspaceState
+        .expandedBuffers
+        .splice(index,1);
+
+    }else{
+
+        workspaceState
+        .expandedBuffers
+        .push(buffer);
+    }
+
+    renderInCable();
+}
+
+function renderPools(){
+
+    let html = "";
+
+    workspaceState.outCables.forEach(
+        cable=>{
+
+            const buffers =
+                cable.size / 12;
+
+            html += `
+            <div class="pool-card">
+
+            <div class="header">
+               ${cable.cableName || ("OUT-"+cable.id)}
+            </div>
+
+            <div class="pool-body">
+                <input
+placeholder="Cable Name"
+
+value="${
+    cable.cableName || ""
+}"
+
+onchange="
+    updateCableField(
+        ${cable.id},
+        'cableName',
+        this.value
+    )
+">
+
+    <input
+placeholder="Parent Cable"
+
+value="${
+    cable.parentCable || ""
+}"
+
+onchange="
+    updateCableField(
+        '${cable.id}',
+        'parentCable',
+        this.value
+    )
+">
+
+<input
+placeholder="From Closure"
+
+value="${
+    cable.fromClosure || ""
+}"
+
+onchange="
+    updateCableField(
+        ${cable.id},
+        'fromClosure',
+        this.value
+    )
+">
+
+<input
+placeholder="To Closure"
+
+value="${
+    cable.toClosure || ""
+}"
+
+onchange="
+    updateCableField(
+        ${cable.id},
+        'toClosure',
+        this.value
+    )
+">
+
+<select
+onchange="
+    updateCableField(
+        ${cable.id},
+        'role',
+        this.value
+    )
+">
+
+<option
+value="branch"
+${cable.role==="branch"
+? "selected"
+: ""}>
+Branch
+</option>
+
+<option
+value="through"
+${cable.role==="through"
+? "selected"
+: ""}>
+Through
+</option>
+
+<option
+value="feeder"
+${cable.role==="feeder"
+? "selected"
+: ""}>
+Feeder
+</option>
+
+</select>
+            `;
+
+            for(let b=1;b<=buffers;b++){
+
+                const color =
+                    COLORS[(b-1)%12][1];
+
+                html += `
+                <div class="
+                    pool-item
+                "
+                draggable="true"
+
+                ondragstart="
+                    dragStart(
+                        event,
+                        '${cable.cableName || ("OUT-"+cable.id)}',
+                        ${b}
+                    )
+                ">
+
+                <div class="
+                    color-col
+                ">
+
+                <div class="fill"
+                style="
+                    background:${color}
+                ">
+                </div>
+
+                </div>
+
+                <div style="
+                    padding:10px
+                ">
+                    Buffer ${b}
+                </div>
+
+                </div>
+                `;
+            }
+
+            html += `
+            </div>
+            </div>
+            `;
+        }
+    );
+
+
+    workspaceState.throughCables.forEach(
+        cable=>{
+
+            const buffers =
+                cable.size / 12;
+
+            html += `
+            <div class="pool-card">
+
+            <div class="header">
+                ${cable.name}
+            </div>
+
+            <div class="pool-body">
+                <input
+placeholder="Cable Name"
+
+value="${
+    cable.cableName || ""
+}"
+
+onchange="
+    updateCableField(
+        ${cable.id},
+        'cableName',
+        this.value
+    )
+">
+
+<input
+placeholder="From Closure"
+
+value="${
+    cable.fromClosure || ""
+}"
+
+onchange="
+    updateCableField(
+        ${cable.id},
+        'fromClosure',
+        this.value
+    )
+">
+
+<input
+placeholder="To Closure"
+
+value="${
+    cable.toClosure || ""
+}"
+
+onchange="
+    updateCableField(
+        ${cable.id},
+        'toClosure',
+        this.value
+    )
+">
+
+<select
+onchange="
+    updateCableField(
+        ${cable.id},
+        'role',
+        this.value
+    )
+">
+
+<option
+value="branch"
+${cable.role==="branch"
+? "selected"
+: ""}>
+Branch
+</option>
+
+<option
+value="through"
+${cable.role==="through"
+? "selected"
+: ""}>
+Through
+</option>
+
+<option
+value="feeder"
+${cable.role==="feeder"
+? "selected"
+: ""}>
+Feeder
+</option>
+
+</select>
+            `;
+
+            for(let b=1;b<=buffers;b++){
+
+                const color =
+                    COLORS[(b-1)%12][1];
+
+                html += `
+                <div class="
+                    pool-item
+                ">
+
+                <div class="
+                    color-col
+                ">
+
+                <div class="fill"
+                style="
+                    background:${color}
+                ">
+                </div>
+
+                </div>
+
+                <div style="
+                    padding:10px
+                ">
+                    Buffer ${b}
+                    <span style="
+                        color:#64748b;
+                        font-size:11px;
+                        margin-left:8px;
+                    ">
+                        Straight Through
+                    </span>
+                </div>
+
+                </div>
+                `;
+            }
+
+            html += `
+            </div>
+            </div>
+            `;
+        }
+    );
+
+    document.getElementById(
+        "poolGrid"
+    ).innerHTML = html;
+}
+
+function dragStart(
+    event,
+    cable,
+    buffer
+){
+
+    event.dataTransfer.setData(
+        "text/plain",
+
+        JSON.stringify({
+            cableName:cable,
+            buffer
+        })
+    );
+}
+
+function handleDrop(
+    event,
+    inBuffer
+){
+
+    event.preventDefault();
+
+    const data =
+        JSON.parse(
+            event.dataTransfer.getData(
+                "text/plain"
+            )
+        );
+
+    const existing =
+        workspaceState.mappings.find(
+            m=>m.buffer===inBuffer
+        );
+
+    const mapping = {
+        buffer:inBuffer,
+        outCable:data.cable,
+        outBuffer:data.buffer,
+        label:
+            data.cableName +
+            " • Buffer " +
+            data.buffer,
+        description:
+            existing
+            ? existing.description
+            : "",
+        status:
+            existing &&
+            existing.status
+            ? existing.status
+            : "Open"
+    };
+
+    workspaceState.mappings =
+        workspaceState.mappings.filter(
+            m=>m.buffer!==inBuffer
+        );
+
+    workspaceState.mappings.push(
+        mapping
+    );
+
+    renderInCable();
+}
+
+function updateDescription(
+    buffer,
+    value
+){
+
+    const mapping =
+        workspaceState.mappings.find(
+            m=>m.buffer===buffer
+        );
+
+    if(mapping)
+        mapping.description = value;
+}
+
+function updateCableField(
+    id,
+    field,
+    value
+){
+
+    let cable =
+        workspaceState.outCables.find(
+            c=>c.id===id
+        );
+
+    if(!cable){
+
+        cable =
+            workspaceState.throughCables.find(
+                c=>c.id===id
+            );
+    }
+
+    if(cable){
+
+        cable[field] = value;
+    }
+}
+
+function updateStatus(
+    buffer,
+    value
+){
+
+    let mapping =
+        workspaceState.mappings.find(
+            m=>m.buffer===buffer
+        );
+
+    if(!mapping){
+
+        mapping = {
+            buffer:buffer
+        };
+
+        workspaceState.mappings.push(
+            mapping
+        );
+    }
+
+    mapping.status = value;
+}
+
+async function saveClosure(){
+
+    workspaceState.closureName =
+        document.getElementById(
+            "closureName"
+        ).value;
+
+    const r = await fetch(
+        "/api/closure/save",
+        {
+            method:"POST",
+            headers:{
+                "Content-Type":
+                "application/json"
+            },
+            body: JSON.stringify({
+                ...workspaceState,
+                id:closureId
+            })
+        }
+    );
+
+    const j = await r.json();
+
+    closureId = j.id;
+
+    alert("Saved");
+}
+
+window.onload = ()=>{
+
+    if(workspaceState.closureName){
+
+        document.getElementById(
+            "closureName"
+        ).value =
+            workspaceState.closureName;
+
+        renderAll();
+    }
+};
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,775 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Splice Closure</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<h1>Splice Closure Workspace</h1>
+
+<div class="toolbar">
+
+<input id="closureName"
+placeholder="Closure Name"
+value="{{ closure.name if closure else '' }}">
+
+<select id="inCableSize">
+<option value="12">12F</option>
+<option value="24">24F</option>
+<option value="48" selected>48F</option>
+<option value="96">96F</option>
+<option value="144">144F</option>
+<option value="288">288F</option>
+</select>
+
+<button onclick="addInCable()">
+Add IN Cable
+</button>
+
+<button onclick="addOutCable()">
+Add OUT Cable
+</button>
+
+<button onclick="saveClosure()">
+Save Closure
+</button>
+
+<a class="btn" href="/">
+Dashboard
+</a>
+
+</div>
+
+<div class="workspace" id="workspace">
+<div class="empty" id="empty">
+Create IN cable first.
+</div>
+</div>
+
+<div class="pool-panel">
+
+<h3 style="margin-top:0">
+OUT Cable Pools
+</h3>
+
+<div class="pool-grid" id="poolGrid"></div>
+
+</div>
+
+<script>
+
+let closureId =
+{{ closure.id if closure else 'null' }};
+
+const CLOSURES = [
+"HH-101 Main Street",
+"HH-205 Airport Road",
+"CAB-17 Downtown",
+"ODF Central Office"
+];
+
+const COLORS = [
+["Blue","#2563eb"],
+["Orange","#f97316"],
+["Green","#16a34a"],
+["Brown","#8b5a2b"],
+["Slate","#9ca3af"],
+["White","#ffffff"],
+["Red","#dc2626"],
+["Black","#111111"],
+["Yellow","#facc15"],
+["Violet","#9333ea"],
+["Rose","#ec4899"],
+["Aqua","#06b6d4"]
+];
+
+const state = {
+    inCable:false,
+    buffers:0,
+    dragData:null
+};
+
+let outCableCount = 0;
+
+function closureList(id){
+
+return `
+<input list="${id}"
+placeholder="Destination Closure">
+
+<datalist id="${id}">
+${CLOSURES.map(
+c=>`<option value="${c}">`
+).join("")}
+</datalist>
+`;
+}
+
+function spliceSelect(buffer){
+
+return `
+<select onchange="
+propagateType(
+${buffer},
+this.value
+)
+">
+<option>Spliced</option>
+<option>Open</option>
+<option>Straight Through</option>
+</select>
+`;
+}
+
+function addInCable(){
+
+if(state.inCable) return;
+
+document.getElementById("empty")?.remove();
+
+const fibers =
+parseInt(
+document.getElementById(
+"inCableSize"
+).value
+);
+
+state.buffers = fibers / 12;
+state.inCable = true;
+
+const card =
+document.createElement("div");
+
+card.className = "cable-card";
+
+card.innerHTML = `
+<div class="cable-header">
+IN Cable — ${fibers}F
+</div>
+
+<div class="cable-meta">
+
+<input placeholder="Cable Name">
+
+${closureList("closure-in")}
+
+</div>
+
+<div class="table-wrap">
+
+<table>
+
+<thead>
+<tr>
+<th></th>
+<th>Buffer/Fiber</th>
+<th>#</th>
+<th>Cable #</th>
+<th>View</th>
+<th>Splice Type</th>
+<th>Mapping</th>
+<th>Description</th>
+</tr>
+</thead>
+
+<tbody>
+${renderBuffers(fibers)}
+</tbody>
+
+</table>
+
+</div>
+`;
+
+document
+.getElementById("workspace")
+.appendChild(card);
+
+bindDropZones();
+}
+
+function renderBuffers(fibers){
+
+let html = "";
+const total = fibers / 12;
+
+for(let b=1;b<=total;b++){
+
+const bc = COLORS[(b-1)%12];
+const start=((b-1)*12)+1;
+const end=b*12;
+
+html += `
+<tr class="buffer-row">
+
+<td class="color-column">
+<div class="color-fill"
+style="background:${bc[1]}">
+</div>
+</td>
+
+<td>Buffer ${b}</td>
+
+<td>${b}</td>
+
+<td>${start}-${end}</td>
+
+<td>
+<button class="expand-btn"
+onclick="toggleBuffer(${b})">
+Expand
+</button>
+</td>
+
+<td>
+${spliceSelect(b)}
+</td>
+
+<td>
+
+<div class="drop-zone"
+data-zone="buffer">
+
+Drop Buffer
+
+</div>
+
+</td>
+
+<td>
+<input
+placeholder="Description">
+</td>
+
+</tr>
+
+${renderFibers(b,bc[1])}
+`;
+}
+
+return html;
+}
+
+function renderFibers(buffer,parent){
+
+let html="";
+
+for(let f=1;f<=12;f++){
+
+const fc=COLORS[f-1];
+const cf=((buffer-1)*12)+f;
+
+html += `
+<tr class="fiber-${buffer}"
+style="display:none">
+
+<td class="color-column">
+
+<div class="color-fill"
+style="
+background:${parent};
+min-height:38px">
+</div>
+
+</td>
+
+<td class="indent">
+
+<div style="
+display:flex;
+align-items:center;
+gap:10px">
+
+<div style="
+width:16px;
+height:16px;
+background:${fc[1]};
+border:1px solid #cbd5e1">
+</div>
+
+${fc[0]}
+
+</div>
+
+</td>
+
+<td>${f}</td>
+
+<td>${cf}</td>
+
+<td>
+
+<button class="expand-btn"
+onclick="toggleSplitter(this)">
+Add Splitter
+</button>
+
+</td>
+
+<td>
+
+<select class="
+splice-buffer-${buffer}
+">
+<option>Spliced</option>
+<option>Open</option>
+<option>Straight Through</option>
+</select>
+
+</td>
+
+<td>
+
+<div class="drop-zone"
+data-zone="fiber">
+
+Drop Strand
+
+</div>
+
+</td>
+
+<td>
+<input
+placeholder="Description">
+</td>
+
+</tr>
+`;
+}
+
+return html;
+}
+
+function propagateType(buffer,value){
+
+document
+.querySelectorAll(
+`.splice-buffer-${buffer}`
+)
+.forEach(el=>{
+el.value=value;
+});
+}
+
+function toggleBuffer(buffer){
+
+document
+.querySelectorAll(
+`.fiber-${buffer}`
+)
+.forEach(r=>{
+
+r.style.display =
+r.style.display==="none"
+? "table-row"
+: "none";
+});
+}
+
+function toggleSplitter(button){
+
+const row =
+button.closest("tr");
+
+const next =
+row.nextElementSibling;
+
+if(
+next &&
+next.classList.contains(
+"splitter-row"
+)
+){
+
+next.remove();
+
+button.innerHTML =
+"Add Splitter";
+
+return;
+}
+
+let ports = "";
+
+for(let i=1;i<=8;i++){
+
+ports += `
+<div class="
+drop-zone
+"
+data-zone="fiber"
+style="margin-top:8px">
+
+Port ${i}
+
+</div>
+`;
+}
+
+const splitter =
+document.createElement("tr");
+
+splitter.className =
+"splitter-row";
+
+splitter.innerHTML = `
+<td colspan="8">
+
+<strong>1:8 Splitter</strong>
+
+${ports}
+
+</td>
+`;
+
+row.after(splitter);
+
+button.innerHTML =
+"Remove Splitter";
+
+bindDropZones();
+}
+
+function addOutCable(){
+
+if(!state.inCable){
+alert("Create IN cable first.");
+return;
+}
+
+outCableCount++;
+
+const defaultSize = 48;
+const defaultBuffers =
+defaultSize / 12;
+
+const card =
+document.createElement("div");
+
+card.className =
+"pool-card";
+
+card.innerHTML = `
+<div class="pool-header">
+OUT Cable ${outCableCount}
+</div>
+
+<div style="
+padding:12px;
+display:flex;
+flex-direction:column;
+gap:8px;
+border-bottom:1px solid #e5e7eb">
+
+<input
+placeholder="Cable Name">
+
+<select
+onchange="
+updateOutCableSize(
+${outCableCount},
+this.value
+)
+">
+
+<option value="12">12F</option>
+<option value="24">24F</option>
+<option value="48" selected>
+48F
+</option>
+<option value="96">96F</option>
+<option value="144">144F</option>
+<option value="288">288F</option>
+
+</select>
+
+${closureList(
+"outclosure"+outCableCount
+)}
+
+</div>
+
+<div id="
+pool-body-${outCableCount}
+">
+
+${renderPool(
+outCableCount,
+defaultBuffers
+)}
+
+</div>
+`;
+
+document
+.getElementById("poolGrid")
+.appendChild(card);
+
+bindDragItems();
+}
+
+function renderPool(cable,buffers){
+
+let html="";
+
+for(let b=1;b<=buffers;b++){
+
+const bc=COLORS[(b-1)%12];
+
+html+=`
+<div class="pool-item drag-item"
+draggable="true"
+data-type="buffer"
+data-label="
+OUT ${cable}
+• Buffer ${b}">
+
+<div class="color-column">
+
+<div class="color-fill"
+style="
+background:${bc[1]};
+min-height:46px">
+</div>
+
+</div>
+
+<div style="padding:10px">
+Buffer ${b}
+</div>
+
+</div>
+`;
+
+for(let f=1;f<=12;f++){
+
+const fc=COLORS[f-1];
+
+html+=`
+<div class="pool-item drag-item"
+draggable="true"
+data-type="fiber"
+data-label="
+OUT ${cable}
+• B${b}/F${f}">
+
+<div class="color-column">
+
+<div class="color-fill"
+style="
+background:${bc[1]};
+min-height:46px">
+</div>
+
+</div>
+
+<div style="
+display:flex;
+align-items:center;
+gap:10px;
+padding-left:18px">
+
+<div style="
+width:16px;
+height:16px;
+background:${fc[1]};
+border:1px solid #cbd5e1">
+</div>
+
+Fiber ${f}
+
+</div>
+
+</div>`;
+}
+}
+
+return html;
+}
+
+function updateOutCableSize(
+cableId,
+size
+){
+
+const buffers =
+parseInt(size) / 12;
+
+const body =
+document.getElementById(
+`pool-body-${cableId}`
+);
+
+body.innerHTML =
+renderPool(
+cableId,
+buffers
+);
+
+bindDragItems();
+}
+
+function bindDragItems(){
+
+document
+.querySelectorAll(".drag-item")
+.forEach(item=>{
+
+if(item.dataset.bound)
+return;
+
+item.dataset.bound=1;
+
+item.addEventListener(
+"dragstart",
+()=>{
+
+state.dragData={
+type:item.dataset.type,
+label:item.dataset.label,
+source:item
+};
+}
+);
+});
+}
+
+function bindDropZones(){
+
+document
+.querySelectorAll(".drop-zone")
+.forEach(zone=>{
+
+if(zone.dataset.bound)
+return;
+
+zone.dataset.bound=1;
+
+zone.addEventListener(
+"dragover",
+e=>{
+
+if(!state.dragData)
+return;
+
+if(
+state.dragData.type !==
+zone.dataset.zone
+) return;
+
+e.preventDefault();
+
+zone.classList.add(
+"hover"
+);
+}
+);
+
+zone.addEventListener(
+"dragleave",
+()=>{
+
+zone.classList.remove(
+"hover"
+);
+}
+);
+
+zone.addEventListener(
+"drop",
+e=>{
+
+e.preventDefault();
+
+zone.classList.remove(
+"hover"
+);
+
+if(!state.dragData)
+return;
+
+if(
+state.dragData.type !==
+zone.dataset.zone
+) return;
+
+const label =
+state.dragData.label;
+
+zone.innerHTML="";
+
+const badge =
+document.createElement(
+"div"
+);
+
+badge.className =
+"mapping-badge";
+
+badge.innerHTML = `
+<span>${label}</span>
+
+<button class="
+remove-btn
+">
+×
+</button>`;
+
+badge.querySelector(
+".remove-btn"
+).onclick = ()=>{
+
+zone.innerHTML =
+zone.dataset.zone==="buffer"
+? "Drop Buffer"
+: "Drop Strand";
+};
+
+zone.appendChild(
+badge
+);
+
+state.dragData.source
+.classList.add(
+"used"
+);
+}
+);
+});
+}
+
+async function saveClosure(){
+
+const payload = {
+id: closureId,
+name: document.getElementById(
+"closureName"
+).value,
+html: document.body.innerHTML
+};
+
+const r = await fetch(
+"/api/closure/save",
+{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body: JSON.stringify(payload)
+}
+);
+
+const j = await r.json();
+
+closureId = j.id;
+
+alert("Closure saved.");
+}
+
+</script>
+
+</body>
+</html>

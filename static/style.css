@@ -1,0 +1,221 @@
+
+
+body{
+font-family:Arial,sans-serif;
+background:#eef2f7;
+padding:20px;
+color:#111827;
+}
+
+.toolbar{
+display:flex;
+gap:10px;
+flex-wrap:wrap;
+margin-bottom:20px;
+}
+
+button,.btn{
+background:#2563eb;
+color:white;
+   padding:5px 8px;
+    font-size:12px;
+border:none;
+border-radius:8px;
+text-decoration:none;
+cursor:pointer;
+
+
+}
+
+#storedJson{
+    font-size:11px;
+    background:#0f172a;
+    color:#e2e8f0;
+    padding:14px;
+    border-radius:8px;
+    overflow:auto;
+    max-height:500px;
+}
+
+input,select{
+   padding:4px 6px;
+border-radius:8px;
+border:1px solid #d1d5db;
+ font-size:12px;
+}
+
+.badge{
+    background:#dbeafe;
+    border:1px solid #93c5fd;
+    border-radius:8px;
+    padding:4px 6px;
+    font-size:12px;
+
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+}
+
+.remove-map{
+    width:18px;
+    height:18px;
+    padding:0;
+    border-radius:50%;
+    background:#ef4444;
+    color:white;
+    border:none;
+    cursor:pointer;
+    line-height:18px;
+    font-size:11px;
+}
+
+
+.card{
+background:white;
+border-radius:14px;
+overflow:hidden;
+box-shadow:0 4px 12px rgba(0,0,0,.08);
+margin-bottom:20px;
+}
+
+.header{
+background:#111827;
+color:white;
+padding:14px;
+font-weight:bold;
+}
+
+.fill-full{
+    width:100%;
+    position:absolute;
+    top:0;
+    bottom:0;
+    left:0;
+    right:0;
+}
+
+
+table{
+    width:auto;
+    border-collapse:collapse;
+    font-size:12px;
+}
+
+thead th{
+    background:#dbe2ea;
+    padding:6px 8px;
+    text-align:left;
+    white-space:nowrap;
+}
+
+td{
+    padding:4px 6px;
+    border-bottom:1px solid #eceff3;
+    white-space:nowrap;
+}
+
+.color-col{
+    width:14px;
+    min-width:14px;
+    padding:0!important;
+    position:relative;
+}
+
+
+.fill{
+width:100%;
+min-height:28px;
+}
+
+.pool-panel{
+background:white;
+border-radius:14px;
+padding:20px;
+box-shadow:0 4px 12px rgba(0,0,0,.08);
+}
+
+.pool-grid{
+display:flex;
+gap:20px;
+flex-wrap:wrap;
+}
+
+.pool-card{
+width:260px;
+border:1px solid #dbe2ea;
+border-radius:12px;
+overflow:hidden;
+}
+
+.pool-body{
+display:flex;
+flex-direction:column;
+}
+
+.pool-item{
+display:flex;
+align-items:center;
+border-bottom:1px solid #eceff3;
+cursor:grab;
+}
+
+.drop-zone{
+min-height:24px;
+border:2px dashed #cbd5e1;
+border-radius:8px;
+display:flex;
+align-items:center;
+padding:4px;
+background:#f8fafc;
+}
+
+.badge{
+background:#dbeafe;
+border:1px solid #93c5fd;
+border-radius:8px;
+padding:6px 8px;
+font-size:12px;
+}
+
+.row{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:14px;
+border-bottom:1px solid #eceff3;
+}
+
+.small{
+padding:6px 10px;
+}
+
+.empty{
+padding:20px;
+color:#64748b;
+}
+
+.buffer-row{
+    background:#f8fafc;
+    font-weight:600;
+}
+
+.strand-row{
+    background:white;
+}
+
+.indent{
+    padding-left:2px!important;
+}
+
+.strand-wrap{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.strand-color{
+    width:16px;
+    height:32px;
+    border:1px solid #cbd5e1;
+}

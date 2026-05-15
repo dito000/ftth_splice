@@ -1,0 +1,55 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Fiber Manager</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<h1>Fiber Manager</h1>
+
+<div class="toolbar">
+<a class="btn" href="/closure/new">
+New Closure
+</a>
+</div>
+
+<div class="card">
+
+{% for c in closures %}
+
+<div class="row">
+
+<div>
+<strong>{{ c.name }}</strong>
+</div>
+
+<div style="display:flex;gap:10px">
+
+<a class="btn small"
+href="/closure/{{ c.id }}">
+View
+</a>
+
+<a class="btn small"
+href="/closure/{{ c.id }}/edit">
+Edit
+</a>
+
+</div>
+
+</div>
+
+{% else %}
+
+<div class="empty">
+No closures created.
+</div>
+
+{% endfor %}
+
+</div>
+
+</body>
+</html>
