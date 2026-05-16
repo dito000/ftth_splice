@@ -18,7 +18,9 @@ onchange="
 workspaceState.closureName =
 this.value
 ">
-
+<input
+id="inCableName"
+placeholder="IN Cable Name">
 <select id="inSize">
 <option>48</option>
 <option>96</option>
@@ -117,7 +119,13 @@ let workspaceState =
 
     throughCables:[],
 
-    mappings:[]
+    mappings:[],
+
+    splitters:[],
+
+    cableRegistry:[],
+
+    editingCable:null
 }
 {% endif %};
 
@@ -133,22 +141,458 @@ function uid(){
         Date.now();
 }
 
+function registerCable(cable){
+
+    if(!workspaceState.cableRegistry){
+
+        workspaceState.cableRegistry = [];
+    }
+
+    const existing =
+        workspaceState.cableRegistry.find(
+            c=>c.cableName===cable.cableName
+        );
+
+    if(existing){
+
+        existing.size =
+            cable.size;
+
+        existing.role =
+            cable.role;
+
+        existing.sourceClosure =
+            cable.sourceClosure;
+
+        existing.destinationClosure =
+            cable.destinationClosure;
+
+        return;
+    }
+
+    workspaceState.cableRegistry.push({
+
+        cableName:cable.cableName,
+
+        size:cable.size,
+
+        role:cable.role,
+
+        sourceClosure:
+            cable.sourceClosure || "",
+
+        destinationClosure:
+            cable.destinationClosure || ""
+    });
+}
+
+
+function openCableEditor(
+    type,
+    cableId
+){
+
+    let cable = null;
+
+    if(type==="out"){
+
+        cable =
+            workspaceState.outCables.find(
+                c=>c.id===cableId
+            );
+
+    }else{
+
+        cable =
+            workspaceState.throughCables.find(
+                c=>c.id===cableId
+            );
+    }
+
+    if(!cable)
+        return;
+
+    workspaceState.editingCable = {
+
+        type:type,
+
+        cableId:cableId
+    };
+
+    renderAll();
+}
+
+function closeCableEditor(){
+
+    workspaceState.editingCable = null;
+
+    renderAll();
+}
+
+function getNextBranchLetter(){
+
+    const letters =
+        "abcdefghijklmnopqrstuvwxyz";
+
+    return letters[
+        workspaceState.outCables.length
+    ] || "x";
+}
+
 function createInCable(){
 
     workspaceState.closureName =
+
         document.getElementById(
             "closureName"
         ).value;
 
+    const cableName =
+
+        document.getElementById(
+            "inCableName"
+        ).value;
+
     workspaceState.inCable = {
+
+        cableName:cableName,
+
         size: parseInt(
+
             document.getElementById(
                 "inSize"
             ).value
         )
     };
 
+    registerCable({
+
+        cableName:
+            cableName,
+
+        size:
+            workspaceState.inCable.size,
+
+        role:"feeder",
+
+        sourceClosure:"",
+
+        destinationClosure:
+            workspaceState.closureName
+    });
+
     renderAll();
+}
+
+function getStrandMapping(
+    inBuffer,
+    inStrand
+){
+
+    return workspaceState.mappings.find(
+        m=>
+
+            m.mappingType==="strand" &&
+
+            m.inBuffer===inBuffer &&
+
+            m.inStrand===inStrand
+    );
+}
+
+function getOutStrandUsage(
+    outCable,
+    outBuffer,
+    outStrand
+){
+
+    return workspaceState.mappings.find(
+        m=>
+
+            m.mappingType==="strand" &&
+
+            m.outCable===outCable &&
+
+            m.outBuffer===outBuffer &&
+
+            m.outStrand===outStrand
+    );
+}
+
+function getSplitter(
+    inBuffer,
+    inStrand
+){
+
+    return workspaceState.splitters.find(
+        s=>
+
+            s.inBuffer===inBuffer &&
+
+            s.inStrand===inStrand
+    );
+}
+
+function getSplitterOutputUsage(
+    splitterId,
+    port
+){
+
+    return workspaceState.mappings.find(
+        m=>
+
+            m.mappingType==="splitter-output" &&
+
+            m.splitterId===splitterId &&
+
+            m.port===port
+    );
+}
+
+function getSplitterOutput(
+    splitterId,
+    port
+){
+
+    const splitter =
+        workspaceState.splitters.find(
+            s=>s.id===splitterId
+        );
+
+    if(!splitter)
+        return null;
+
+    return splitter.outputs.find(
+        o=>o.port===port
+    );
+}
+
+function removeStrandMapping(
+    inBuffer,
+    inStrand
+){
+
+    const mapping =
+        getStrandMapping(
+            inBuffer,
+            inStrand
+        );
+
+    if(!mapping)
+        return;
+
+    mapping.outCable = null;
+
+    mapping.outBuffer = null;
+
+    mapping.outStrand = null;
+
+    if(mapping.status==="Spliced"){
+
+        mapping.status = "Open";
+    }
+
+    renderInCable();
+
+    renderPools();
+}
+
+function clearStrandRecord(
+    inBuffer,
+    inStrand
+){
+
+    workspaceState.mappings =
+        workspaceState.mappings.filter(
+            m=>!(
+                m.mappingType==="strand" &&
+                m.inBuffer===inBuffer &&
+                m.inStrand===inStrand
+            )
+        );
+
+    renderInCable();
+
+    renderPools();
+}
+
+function addSplitter(
+    inBuffer,
+    inStrand
+){
+
+    const existing =
+        getSplitter(
+            inBuffer,
+            inStrand
+        );
+
+    if(existing){
+
+        alert(
+            "Splitter already exists on this strand."
+        );
+
+        return;
+    }
+
+    workspaceState.splitters.push({
+
+        id:uid(),
+
+        splitterRatio:"1:8",
+
+        inBuffer:inBuffer,
+
+        inStrand:inStrand,
+
+        outputs:[
+            {
+                port:1,
+                description:""
+            },
+            {
+                port:2,
+                description:""
+            },
+            {
+                port:3,
+                description:""
+            },
+            {
+                port:4,
+                description:""
+            },
+            {
+                port:5,
+                description:""
+            },
+            {
+                port:6,
+                description:""
+            },
+            {
+                port:7,
+                description:""
+            },
+            {
+                port:8,
+                description:""
+            }
+        ]
+    });
+
+    const mapping =
+        getStrandMapping(
+            inBuffer,
+            inStrand
+        );
+
+    if(mapping){
+
+        mapping.status =
+            "Splitter Input";
+
+    }else{
+
+        workspaceState.mappings.push({
+
+            mappingType:"strand",
+
+            inBuffer:inBuffer,
+
+            inStrand:inStrand,
+
+            outCable:null,
+
+            outBuffer:null,
+
+            outStrand:null,
+
+            description:"",
+
+            status:"Splitter Input"
+        });
+    }
+
+    renderInCable();
+}
+
+function removeSplitter(
+    inBuffer,
+    inStrand
+){
+
+    const splitter =
+        getSplitter(
+            inBuffer,
+            inStrand
+        );
+
+    if(!splitter)
+        return;
+
+    workspaceState.splitters =
+        workspaceState.splitters.filter(
+            s=>s.id!==splitter.id
+        );
+
+    workspaceState.mappings =
+        workspaceState.mappings.filter(
+            m=>!(
+
+                m.mappingType==="splitter-output" &&
+
+                m.splitterId===splitter.id
+            )
+        );
+
+    const strandMapping =
+        getStrandMapping(
+            inBuffer,
+            inStrand
+        );
+
+    if(strandMapping){
+
+        if(
+            !strandMapping.outCable &&
+            !strandMapping.description
+        ){
+
+            strandMapping.status = "Open";
+
+        }else{
+
+            strandMapping.status = "Spliced";
+        }
+    }
+
+    renderInCable();
+
+    renderPools();
+}
+
+function removeSplitterOutput(
+    splitterId,
+    port
+){
+
+    workspaceState.mappings =
+        workspaceState.mappings.filter(
+            m=>!(
+
+                m.mappingType==="splitter-output" &&
+
+                m.splitterId===splitterId &&
+
+                m.port===port
+            )
+        );
+
+    renderInCable();
+
+    renderPools();
 }
 
 function removeMapping(buffer){
@@ -173,20 +617,62 @@ function addOutCable(){
             ).value
         );
 
-workspaceState.outCables.push({
+const branchLetter =
+    getNextBranchLetter();
+
+const parentCable =
+    workspaceState.inCable
+    ?.cableName || "UNKNOWN";
+
+const generatedName =
+
+    parentCable +
+
+    "/" +
+
+    workspaceState.closureName +
+
+    branchLetter;
+
+const cable = {
+
     id:uid(),
 
-    cableName:"",
+    branchLetter:branchLetter,
 
-    parentCable:"",
+    cableName:generatedName,
 
-    fromClosure:"",
+    parentCable:parentCable,
+
+    fromClosure:
+        workspaceState.closureName,
 
     toClosure:"",
 
     role:"branch",
 
     size:size
+};
+
+workspaceState.outCables.push(
+    cable
+);
+
+registerCable({
+
+    cableName:
+        cable.cableName ||
+
+        ("OUT-"+cable.id),
+
+    size:cable.size,
+
+    role:cable.role,
+
+    sourceClosure:
+        workspaceState.closureName,
+
+    destinationClosure:""
 });
 
     renderPools();
@@ -205,21 +691,48 @@ function addThroughCable(){
             ).value
         );
 
-    workspaceState.throughCables.push({
+const parentCable =
+    workspaceState.inCable
+    ?.cableName || "UNKNOWN";
+
+const cable = {
+
     id:uid(),
 
-    cableName:"",
+    cableName:parentCable,
 
-    parentCable:"",
+    parentCable:parentCable,
 
-    fromClosure:"",
+    fromClosure:
+        workspaceState.closureName,
 
     toClosure:"",
 
     role:"through",
 
     size:size
-});
+};
+
+        workspaceState.throughCables.push(
+            cable
+        );
+
+        registerCable({
+
+            cableName:
+                cable.cableName ||
+
+                ("THROUGH-"+cable.id),
+
+            size:cable.size,
+
+            role:cable.role,
+
+            sourceClosure:
+                workspaceState.closureName,
+
+            destinationClosure:""
+        });
 
     const buffers = size / 12;
 
@@ -306,6 +819,24 @@ function renderInCable(){
             .expandedBuffers
             .includes(b);
 
+        let rowspanCount = 1;
+
+if(expanded){
+
+    rowspanCount += 12;
+
+    for(let f=1;f<=12;f++){
+
+        const splitter =
+            getSplitter(b,f);
+
+        if(splitter){
+
+            rowspanCount += 8;
+        }
+    }
+}
+
         const mapping =
             workspaceState.mappings.find(
                 m=>m.buffer===b
@@ -316,9 +847,7 @@ function renderInCable(){
 
         <td
 class="color-col"
-rowspan="${
-    expanded ? 13 : 1
-}">
+rowspan="${rowspanCount}">
 
     <div class="fill-full"
     style="
@@ -479,64 +1008,422 @@ Straight Through
                 const cableFiber =
                     ((b-1)*12)+f;
 
-                html += `
-                <tr class="strand-row">
+const strandMapping =
+    getStrandMapping(b,f);
 
-                
+    const splitter = getSplitter(b,f);
 
-                <td class="indent">
+html += `
+<tr class="
+    strand-row
+    ${strandMapping ? 'strand-mapped' : ''}
+">
 
-                    <div class="
-                        strand-wrap
-                    ">
+<td class="indent">
 
-                    <div class="
-                        strand-color
-                    "
-                    style="
-                        background:${strandColor}
-                    ">
-                    </div>
+    <div class="
+        strand-wrap
+    ">
 
-                    ${strandName}
+    <div class="
+        strand-color
+    "
+    style="
+        background:${strandColor}
+    ">
+    </div>
 
-                    </div>
+    ${strandName}
 
-                </td>
+    </div>
 
-                <td>
-                    ${f}
-                </td>
+</td>
 
-                <td>
-                    ${cableFiber}
-                </td>
+<td>
+    ${f}
+</td>
 
-                <td></td>
+<td>
+    ${cableFiber}
+</td>
 
-                <td>
+<td>
 
-                    <div class="
-                        drop-zone
-                    ">
+<select
 
-                    Drop Strand
+onchange="
+    updateStrandStatus(
+        ${b},
+        ${f},
+        this.value
+    )
+">
 
-                    </div>
+<option
+value="Open"
 
-                </td>
+${
+    !strandMapping ||
+    !strandMapping.status ||
+    strandMapping.status==="Open"
+    ? "selected"
+    : ""
+}>
+Open
+</option>
 
-                <td>
+<option
+value="Spliced"
 
-                    <input
-                    placeholder="
-                        Strand Description
-                    ">
+${
+    strandMapping &&
+    strandMapping.status==="Spliced"
+    ? "selected"
+    : ""
+}>
+Spliced
+</option>
 
-                </td>
+<option
+value="Reserved"
 
-                </tr>
-                `;
+${
+    strandMapping &&
+    strandMapping.status==="Reserved"
+    ? "selected"
+    : ""
+}>
+Reserved
+</option>
+
+<option
+value="Damaged"
+
+${
+    strandMapping &&
+    strandMapping.status==="Damaged"
+    ? "selected"
+    : ""
+}>
+Damaged
+</option>
+
+</select>
+
+</td>
+
+<td>
+
+    <div
+    class="
+        drop-zone
+    "
+
+    ondragover="
+        event.preventDefault()
+    "
+
+    ondrop="
+        handleStrandDrop(
+            event,
+            ${b},
+            ${f}
+        )
+    ">
+
+${
+    strandMapping &&
+    strandMapping.outCable
+
+    ? `
+    <div class="badge">
+
+        <span>
+
+            ${strandMapping.outCable}
+
+            •
+
+            B${strandMapping.outBuffer}
+
+            •
+
+            S${strandMapping.outStrand}
+
+        </span>
+<button
+class="remove-map"
+
+title="Remove Splice"
+
+onclick="
+    removeStrandMapping(
+        ${b},
+        ${f}
+    )
+">
+    ×
+</button>
+
+<button
+class="remove-map"
+
+title="Clear Strand"
+
+onclick="
+    clearStrandRecord(
+        ${b},
+        ${f}
+    )
+">
+    !
+</button>
+
+    </div>
+    `
+
+    : (
+    splitter
+
+? `
+
+<div class="badge">
+
+    <span>
+
+        1:8 Splitter
+
+    </span>
+
+    <button
+    class="remove-map"
+
+    title="Remove Splitter"
+
+    onclick="
+        removeSplitter(
+            ${b},
+            ${f}
+        )
+    ">
+        ×
+    </button>
+
+</div>
+
+`
+
+    : (
+
+        strandMapping
+        ? strandMapping.status
+        : "Drop Strand"
+    )
+)
+}
+
+    </div>
+
+</td>
+
+<td>
+
+<div style="
+    display:flex;
+    gap:6px;
+    align-items:center;
+">
+
+<input
+
+value="${
+    strandMapping
+    ? strandMapping.description || ""
+    : ""
+}"
+
+placeholder="
+    Strand Description
+"
+
+onchange="
+    updateStrandDescription(
+        ${b},
+        ${f},
+        this.value
+    )
+">
+
+<button
+
+onclick="
+    addSplitter(
+        ${b},
+        ${f}
+    )
+">
+
+1:8
+
+</button>
+
+</div>
+
+</td>
+
+</tr>
+`;
+
+if(splitter){
+
+    for(let p=1;p<=8;p++){
+
+        const outputUsage =
+    getSplitterOutputUsage(
+        splitter.id,
+        p
+    );
+
+        html += `
+
+<tr class="
+    splitter-port-row
+    ${outputUsage ? 'splitter-port-used' : ''}
+">
+
+    <td></td>
+
+    <td class="indent">
+
+        <div class="
+            strand-wrap
+        ">
+
+            <div class="
+                strand-color
+            "
+            style="
+                background:${strandColor}
+            ">
+            </div>
+
+            Splitter Port ${p}
+
+        </div>
+
+    </td>
+
+    <td>
+        ${p}
+    </td>
+
+    <td>
+        -
+    </td>
+
+    <td>
+        -
+    </td>
+
+    <td>
+
+        Splitter Output
+
+    </td>
+
+    <td>
+
+        <div class="
+            drop-zone
+        "
+
+        ondragover="
+            event.preventDefault()
+        "
+
+        ondrop="
+            handleSplitterDrop(
+                event,
+                '${splitter.id}',
+                ${p}
+            )
+        ">
+
+            ${
+                outputUsage
+
+                ? `
+
+                <div class="badge">
+
+    <span>
+
+        ${outputUsage.outCable}
+
+        •
+
+        B${outputUsage.outBuffer}
+
+        •
+
+        S${outputUsage.outStrand}
+
+    </span>
+
+    <button
+    class="remove-map"
+
+    title="Remove Output"
+
+    onclick="
+        removeSplitterOutput(
+            '${splitter.id}',
+            ${p}
+        )
+    ">
+        ×
+    </button>
+
+</div>
+
+                `
+
+                : "Drop Strand"
+            }
+
+        </div>
+
+    </td>
+
+    <td>
+
+        <input
+
+value="${
+    getSplitterOutput(
+        splitter.id,
+        p
+    )?.description || ""
+}"
+
+placeholder="
+    Port Description
+"
+
+onchange="
+    updateSplitterOutputDescription(
+        '${splitter.id}',
+        ${p},
+        this.value
+    )
+">
+
+    </td>
+
+</tr>
+        `;
+    }
+}
             }
         }
     }
@@ -594,102 +1481,43 @@ function renderPools(){
             <div class="header">
                ${cable.cableName || ("OUT-"+cable.id)}
             </div>
+                <div class="pool-body">
 
-            <div class="pool-body">
-                <input
-placeholder="Cable Name"
+                <div class="pool-meta">
 
-value="${
-    cable.cableName || ""
-}"
+                    <div>
 
-onchange="
-    updateCableField(
-        ${cable.id},
-        'cableName',
-        this.value
-    )
-">
+                        <strong>
+                            ${cable.cableName}
+                        </strong>
 
-    <input
-placeholder="Parent Cable"
+                    </div>
 
-value="${
-    cable.parentCable || ""
-}"
+                    <div class="pool-route">
 
-onchange="
-    updateCableField(
-        '${cable.id}',
-        'parentCable',
-        this.value
-    )
-">
+                        ${cable.fromClosure || "?"}
 
-<input
-placeholder="From Closure"
+                        →
 
-value="${
-    cable.fromClosure || ""
-}"
+                        ${cable.toClosure || "?"}
 
-onchange="
-    updateCableField(
-        ${cable.id},
-        'fromClosure',
-        this.value
-    )
-">
+                    </div>
 
-<input
-placeholder="To Closure"
+                </div>
 
-value="${
-    cable.toClosure || ""
-}"
+                <button
 
-onchange="
-    updateCableField(
-        ${cable.id},
-        'toClosure',
-        this.value
-    )
-">
+                onclick="
+                    openCableEditor(
+                        'out',
+                        '${cable.id}'
+                    )
+                ">
 
-<select
-onchange="
-    updateCableField(
-        ${cable.id},
-        'role',
-        this.value
-    )
-">
+                Edit
 
-<option
-value="branch"
-${cable.role==="branch"
-? "selected"
-: ""}>
-Branch
-</option>
+                </button>
 
-<option
-value="through"
-${cable.role==="through"
-? "selected"
-: ""}>
-Through
-</option>
-
-<option
-value="feeder"
-${cable.role==="feeder"
-? "selected"
-: ""}>
-Feeder
-</option>
-
-</select>
             `;
 
             for(let b=1;b<=buffers;b++){
@@ -698,36 +1526,103 @@ Feeder
                     COLORS[(b-1)%12][1];
 
                 html += `
+
                 <div class="
                     pool-item
-                "
-                draggable="true"
-
-                ondragstart="
-                    dragStart(
-                        event,
-                        '${cable.cableName || ("OUT-"+cable.id)}',
-                        ${b}
-                    )
                 ">
 
-                <div class="
-                    color-col
-                ">
+                    <div class="
+                        color-col
+                    ">
 
-                <div class="fill"
-                style="
-                    background:${color}
-                ">
-                </div>
+                        <div class="fill"
+                        style="
+                            background:${color}
+                        ">
+                        </div>
 
-                </div>
+                    </div>
 
-                <div style="
-                    padding:10px
-                ">
-                    Buffer ${b}
-                </div>
+                    <div style="
+                        padding:10px
+                    ">
+
+                        <div
+
+                        draggable="true"
+
+                        ondragstart="
+                            dragStart(
+                                event,
+                                '${cable.cableName || ("OUT-"+cable.id)}',
+                                ${b}
+                            )
+                        ">
+
+                            Buffer ${b}
+
+                        </div>
+                `;
+
+for(let s=1;s<=12;s++){
+
+    const strandColor =
+        COLORS[s-1][1];
+
+    const strandName =
+        COLORS[s-1][0];
+
+    const strandUsed =
+    getOutStrandUsage(
+        cable.cableName || ("OUT-"+cable.id),
+        b,
+        s
+    );
+
+    html += `
+
+    <div
+
+    class="
+    strand-pool-item
+    ${strandUsed ? 'strand-used' : ''}
+"
+
+    draggable="true"
+
+    ondragstart="
+        dragStrandStart(
+            event,
+            '${cable.cableName || ("OUT-"+cable.id)}',
+            ${b},
+            ${s}
+        )
+    ">
+
+        <div
+        class="strand-mini-color"
+
+        style="
+            background:${strandColor}
+        ">
+        </div>
+
+        <span>
+
+            ${s}
+            -
+            ${strandName}
+
+        </span>
+
+    </div>
+
+    `;
+}
+
+                html += `
+
+                    </div>
 
                 </div>
                 `;
@@ -739,7 +1634,6 @@ Feeder
             `;
         }
     );
-
 
     workspaceState.throughCables.forEach(
         cable=>{
@@ -751,89 +1645,46 @@ Feeder
             <div class="pool-card">
 
             <div class="header">
-                ${cable.name}
+                ${cable.cableName || ("THROUGH-"+cable.id)}
             </div>
 
             <div class="pool-body">
-                <input
-placeholder="Cable Name"
 
-value="${
-    cable.cableName || ""
-}"
+<div class="pool-meta">
 
-onchange="
-    updateCableField(
-        ${cable.id},
-        'cableName',
-        this.value
+    <div>
+
+        <strong>
+            ${cable.cableName}
+        </strong>
+
+    </div>
+
+    <div class="pool-route">
+
+        ${cable.fromClosure || "?"}
+
+        →
+
+        ${cable.toClosure || "?"}
+
+    </div>
+
+</div>
+
+<button
+
+onclick="
+    openCableEditor(
+        'through',
+        '${cable.id}'
     )
 ">
 
-<input
-placeholder="From Closure"
+Edit
 
-value="${
-    cable.fromClosure || ""
-}"
-
-onchange="
-    updateCableField(
-        ${cable.id},
-        'fromClosure',
-        this.value
-    )
-">
-
-<input
-placeholder="To Closure"
-
-value="${
-    cable.toClosure || ""
-}"
-
-onchange="
-    updateCableField(
-        ${cable.id},
-        'toClosure',
-        this.value
-    )
-">
-
-<select
-onchange="
-    updateCableField(
-        ${cable.id},
-        'role',
-        this.value
-    )
-">
-
-<option
-value="branch"
-${cable.role==="branch"
-? "selected"
-: ""}>
-Branch
-</option>
-
-<option
-value="through"
-${cable.role==="through"
-? "selected"
-: ""}>
-Through
-</option>
-
-<option
-value="feeder"
-${cable.role==="feeder"
-? "selected"
-: ""}>
-Feeder
-</option>
-
-</select>
+</button>
+                
             `;
 
             for(let b=1;b<=buffers;b++){
@@ -842,34 +1693,40 @@ Feeder
                     COLORS[(b-1)%12][1];
 
                 html += `
+
                 <div class="
                     pool-item
                 ">
 
-                <div class="
-                    color-col
-                ">
-
-                <div class="fill"
-                style="
-                    background:${color}
-                ">
-                </div>
-
-                </div>
-
-                <div style="
-                    padding:10px
-                ">
-                    Buffer ${b}
-                    <span style="
-                        color:#64748b;
-                        font-size:11px;
-                        margin-left:8px;
+                    <div class="
+                        color-col
                     ">
-                        Straight Through
-                    </span>
-                </div>
+
+                        <div class="fill"
+                        style="
+                            background:${color}
+                        ">
+                        </div>
+
+                    </div>
+
+                    <div style="
+                        padding:10px
+                    ">
+
+                        Buffer ${b}
+
+                        <span style="
+                            color:#64748b;
+                            font-size:11px;
+                            margin-left:8px;
+                        ">
+
+                            Straight Through
+
+                        </span>
+
+                    </div>
 
                 </div>
                 `;
@@ -882,9 +1739,104 @@ Feeder
         }
     );
 
-    document.getElementById(
-        "poolGrid"
-    ).innerHTML = html;
+if(workspaceState.editingCable){
+
+    let cable = null;
+
+    if(
+        workspaceState
+        .editingCable
+        .type==="out"
+    ){
+
+        cable =
+            workspaceState.outCables.find(
+                c=>
+
+                c.id===workspaceState
+                    .editingCable
+                    .cableId
+            );
+
+    }else{
+
+        cable =
+            workspaceState.throughCables.find(
+                c=>
+
+                c.id===workspaceState
+                    .editingCable
+                    .cableId
+            );
+    }
+
+    if(cable){
+
+        html += `
+
+        <div class="modal-backdrop">
+
+            <div class="modal">
+
+                <div class="header">
+
+                    Edit Cable
+
+                </div>
+
+                <input
+
+                value="${
+                    cable.cableName || ""
+                }"
+
+                onchange="
+                    updateCableField(
+                        '${cable.id}',
+                        'cableName',
+                        this.value
+                    )
+                "
+
+                placeholder="
+                    Cable Name
+                ">
+
+                <input
+
+                value="${
+                    cable.toClosure || ""
+                }"
+
+                onchange="
+                    updateCableField(
+                        '${cable.id}',
+                        'toClosure',
+                        this.value
+                    )
+                "
+
+                placeholder="
+                    Destination Closure
+                ">
+
+                <button
+                onclick="
+                    closeCableEditor()
+                ">
+                    Close
+                </button>
+
+            </div>
+
+        </div>
+        `;
+    }
+}
+
+document.getElementById(
+    "poolGrid"
+).innerHTML = html;
 }
 
 function dragStart(
@@ -901,6 +1853,161 @@ function dragStart(
             buffer
         })
     );
+}
+
+function dragStrandStart(
+    event,
+    cableName,
+    buffer,
+    strand
+){
+
+    event.dataTransfer.setData(
+        "text/plain",
+
+        JSON.stringify({
+
+            type:"strand",
+
+            cableName:cableName,
+
+            buffer:buffer,
+
+            strand:strand
+        })
+    );
+}
+
+function handleSplitterDrop(
+    event,
+    splitterId,
+    port
+){
+
+    event.preventDefault();
+
+    const data =
+        JSON.parse(
+            event.dataTransfer.getData(
+                "text/plain"
+            )
+        );
+
+    if(data.type!=="strand")
+        return;
+
+    const existing =
+        getOutStrandUsage(
+            data.cableName,
+            data.buffer,
+            data.strand
+        );
+
+    if(existing){
+
+        alert(
+            "That OUT strand is already mapped."
+        );
+
+        return;
+    }
+
+    workspaceState.mappings =
+        workspaceState.mappings.filter(
+            m=>!(
+                m.mappingType==="splitter-output" &&
+                m.splitterId===splitterId &&
+                m.port===port
+            )
+        );
+
+    workspaceState.mappings.push({
+
+        mappingType:"splitter-output",
+
+        splitterId:splitterId,
+
+        port:port,
+
+        outCable:data.cableName,
+
+        outBuffer:data.buffer,
+
+        outStrand:data.strand,
+
+        status:"Splitter Output",
+
+        description:""
+    });
+
+    renderInCable();
+
+    renderPools();
+}
+
+function handleStrandDrop(
+    event,
+    inBuffer,
+    inStrand
+){
+
+    event.preventDefault();
+
+    const data =
+        JSON.parse(
+            event.dataTransfer.getData(
+                "text/plain"
+            )
+        );
+
+    if(data.type!=="strand")
+        return;
+
+    const existingOutUsage =
+    getOutStrandUsage(
+        data.cableName,
+        data.buffer,
+        data.strand
+    );
+
+    if(existingOutUsage){
+
+        alert(
+            "That OUT strand is already mapped."
+        );
+
+        return;
+    }
+
+    workspaceState.mappings =
+        workspaceState.mappings.filter(
+            m=>!(
+                m.mappingType==="strand" &&
+                m.inBuffer===inBuffer &&
+                m.inStrand===inStrand
+            )
+        );
+
+    workspaceState.mappings.push({
+
+        mappingType:"strand",
+
+        inBuffer:inBuffer,
+
+        inStrand:inStrand,
+
+        outCable:data.cableName,
+
+        outBuffer:data.buffer,
+
+        outStrand:data.strand,
+
+        description:"",
+
+        status:"Spliced"
+    });
+
+    renderInCable();
 }
 
 function handleDrop(
@@ -922,24 +2029,31 @@ function handleDrop(
             m=>m.buffer===inBuffer
         );
 
-    const mapping = {
-        buffer:inBuffer,
-        outCable:data.cable,
-        outBuffer:data.buffer,
-        label:
-            data.cableName +
-            " • Buffer " +
-            data.buffer,
-        description:
-            existing
-            ? existing.description
-            : "",
-        status:
-            existing &&
-            existing.status
-            ? existing.status
-            : "Open"
-    };
+const mapping = {
+    mappingType:"buffer",
+
+    buffer:inBuffer,
+
+    outCable:data.cableName,
+
+    outBuffer:data.buffer,
+
+    label:
+        data.cableName +
+        " • Buffer " +
+        data.buffer,
+
+    description:
+        existing
+        ? existing.description
+        : "",
+
+    status:
+        existing &&
+        existing.status
+        ? existing.status
+        : "Open"
+};
 
     workspaceState.mappings =
         workspaceState.mappings.filter(
@@ -965,6 +2079,87 @@ function updateDescription(
 
     if(mapping)
         mapping.description = value;
+}
+
+function updateStrandDescription(
+    inBuffer,
+    inStrand,
+    value
+){
+
+    const mapping =
+        getStrandMapping(
+            inBuffer,
+            inStrand
+        );
+
+    if(mapping){
+
+        mapping.description = value;
+    }
+}
+
+function updateSplitterOutputDescription(
+    splitterId,
+    port,
+    value
+){
+
+    const output =
+        getSplitterOutput(
+            splitterId,
+            port
+        );
+
+    if(!output)
+        return;
+
+    output.description = value;
+}
+
+function updateStrandStatus(
+    inBuffer,
+    inStrand,
+    value
+){
+
+    let mapping =
+        getStrandMapping(
+            inBuffer,
+            inStrand
+        );
+
+    if(!mapping){
+
+        mapping = {
+
+            mappingType:"strand",
+
+            inBuffer:inBuffer,
+
+            inStrand:inStrand,
+
+            outCable:null,
+
+            outBuffer:null,
+
+            outStrand:null,
+
+            description:"",
+
+            status:value
+        };
+
+        workspaceState.mappings.push(
+            mapping
+        );
+
+    }else{
+
+        mapping.status = value;
+    }
+
+    renderInCable();
 }
 
 function updateCableField(

@@ -27,6 +27,41 @@ cursor:pointer;
 
 }
 
+.strand-pool-item{
+    display:flex;
+    align-items:center;
+    gap:8px;
+
+    padding:4px 8px;
+
+    margin-top:4px;
+
+    border:1px solid #cbd5e1;
+
+    border-radius:4px;
+
+    background:#f8fafc;
+
+    cursor:grab;
+
+    font-size:12px;
+}
+
+.strand-pool-item:hover{
+    background:#eef2ff;
+}
+
+.strand-mini-color{
+    width:12px;
+    height:12px;
+
+    border-radius:2px;
+
+    border:1px solid #64748b;
+
+    flex-shrink:0;
+}
+
 #storedJson{
     font-size:11px;
     background:#0f172a;
@@ -122,6 +157,18 @@ td{
     position:relative;
 }
 
+.strand-used{
+    opacity:0.45;
+    background:#e2e8f0;
+
+    border-color:#94a3b8;
+}
+
+.strand-mapped{
+    background:#dcfce7;
+
+    border-color:#16a34a;
+}
 
 .fill{
 width:100%;
@@ -218,4 +265,60 @@ color:#64748b;
     width:16px;
     height:32px;
     border:1px solid #cbd5e1;
+}
+.splitter-port-row{
+    background:#f8fafc;
+}
+
+.splitter-port-row td{
+    font-size:12px;
+}
+
+.splitter-port-used{
+    background:#dcfce7;
+}
+
+.splitter-port-used .drop-zone{
+    border-color:#16a34a;
+}
+
+.pool-meta{
+    flex:1;
+}
+
+.pool-route{
+    font-size:11px;
+    color:#64748b;
+}
+
+.modal-backdrop{
+    position:fixed;
+
+    inset:0;
+
+    background:rgba(0,0,0,0.35);
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    z-index:999;
+}
+
+.modal{
+    background:white;
+
+    padding:20px;
+
+    border-radius:6px;
+
+    width:320px;
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:10px;
 }

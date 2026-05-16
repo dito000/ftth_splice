@@ -1,0 +1,28 @@
+</head>
+
+<body>
+
+<div class="page">
+
+<h1>
+
+    {{odf.odfName}}
+
+</h1>
+
+<div id="workspace"></div>
+
+<script>
+
+const odfState =
+    {{ odf|tojson }};
+
+const cableRegistry =
+    {{ cable_registry|tojson }};
+
+</script>
+
+<script src="/static/odf.js"></script>
+
+</body>
+</html>

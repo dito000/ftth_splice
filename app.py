@@ -1,8 +1,10 @@
 
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import os
+import json
+import uuid
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
@@ -13,11 +15,33 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 
+ODF_FILE = "odfs.json"
+
 class Closure(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255))
     data = db.Column(db.JSON)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+def load_odfs():
+
+    if not os.path.exists(ODF_FILE):
+
+        return []
+
+    with open(ODF_FILE, "r") as f:
+
+        return json.load(f)
+
+
+def save_odfs(data):
+
+    with open(ODF_FILE, "w") as f:
+
+        json.dump(data, f, indent=2)
+
+
 
 @app.route("/")
 def dashboard():
@@ -37,6 +61,117 @@ def closure_view(id):
 def closure_edit(id):
     closure = Closure.query.get_or_404(id)
     return render_template("closure_edit.html", closure=closure)
+
+
+@app.route("/odfs")
+def odf_dashboard():
+
+    odfs = load_odfs()
+
+    return render_template(
+        "odf_dashboard.html",
+        odfs=odfs
+    )
+
+@app.route(
+    "/odf/create",
+    methods=["POST"]
+)
+def create_odf():
+
+    odfs = load_odfs()
+
+    odf_id = str(uuid.uuid4())
+
+    odf = {
+
+        "id":odf_id,
+
+        "odfName":"New ODF",
+
+        "location":"",
+
+        "totalPorts":144,
+
+        "ports":[]
+    }
+
+    odfs.append(odf)
+
+    save_odfs(odfs)
+
+    return redirect(
+        f"/odf/{odf_id}/edit"
+    )
+
+
+
+@app.route("/odf/<odf_id>/edit")
+def edit_odf(odf_id):
+
+    odfs = load_odfs()
+
+    odf = next(
+        (
+            o for o in odfs
+            if o["id"] == odf_id
+        ),
+        None
+    )
+
+    if not odf:
+
+        return "ODF not found", 404
+
+    closures = load_closures()
+
+    cable_registry = []
+
+    for closure in closures:
+
+        for cable in closure.get(
+            "cableRegistry",
+            []
+        ):
+
+            existing = next(
+                (
+                    c for c in cable_registry
+                    if c["cableName"] ==
+                    cable["cableName"]
+                ),
+                None
+            )
+
+            if not existing:
+
+                cable_registry.append(
+                    cable
+                )
+
+    return render_template(
+        "odf_edit.html",
+        odf=odf,
+        cable_registry=cable_registry
+    )
+
+def save_odf_route(odf_id):
+
+    odfs = load_odfs()
+
+    payload = request.json
+
+    for i, odf in enumerate(odfs):
+
+        if odf["id"] == odf_id:
+
+            odfs[i] = payload
+
+            break
+
+    save_odfs(odfs)
+
+    return {"success":True}
 
 @app.route("/api/closure/save", methods=["POST"])
 def save_closure():

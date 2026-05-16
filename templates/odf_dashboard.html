@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>
+        ODF Dashboard
+    </title>
+
+    <link
+    rel="stylesheet"
+    href="/static/style.css">
+
+</head>
+
+<body>
+
+<div class="page">
+
+    <div class="header-row">
+
+        <h1>
+            ODF Dashboard
+        </h1>
+
+        <form
+        method="POST"
+        action="/odf/create">
+
+            <button>
+                Create ODF
+            </button>
+
+        </form>
+
+    </div>
+
+    <div class="grid">
+
+        {% for odf in odfs %}
+
+        <a
+        class="card"
+        href="/odf/{{odf.id}}/edit">
+
+            <div class="header">
+
+                {{odf.odfName}}
+
+            </div>
+
+            <div class="body">
+
+                <div>
+                    Location:
+                    {{odf.location}}
+                </div>
+
+                <div>
+                    Ports:
+                    {{odf.totalPorts}}
+                </div>
+
+            </div>
+
+        </a>
+
+        {% endfor %}
+
+    </div>
+
+</div>
+
+</body>
+</html>
