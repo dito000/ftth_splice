@@ -336,24 +336,6 @@ function getStrandMapping(
     );
 }
 
-function getOutStrandUsage(
-    outCable,
-    outBuffer,
-    outStrand
-){
-
-    return workspaceState.mappings.find(
-        m=>
-
-            m.mappingType==="strand" &&
-
-            m.outCable===outCable &&
-
-            m.outBuffer===outBuffer &&
-
-            m.outStrand===outStrand
-    );
-}
 
 function getSplitter(
     inBuffer,
@@ -639,6 +621,7 @@ function removeMapping(buffer){
         );
 
     renderInCable();
+    renderPools();
 }
 
 function addOutCable(){
@@ -1705,61 +1688,45 @@ ondragstart="
 
         </div>
 
-        ${
-            strandUsed
+${
+    strandUsed
 
-            ? (
+    ? (
 
-                strandLockedByBuffer
+        strandLockedByBuffer
 
-? `
-<span class="
-    strand-badge used
-">
-    BUF
-</span>
-`
+        ? `
+        <span class="
+            strand-badge used
+        ">
+            BUF
+        </span>
+        `
 
-: (
+        : (
 
-    strandIsSplitter
+            strandIsSplitter
 
-    ? `
-    <span class="
-        strand-badge splitter
-    ">
-        SPL
-    </span>
-    `
+            ? `
+            <span class="
+                strand-badge splitter
+            ">
+                SPL
+            </span>
+            `
 
-    : `
-    <span class="
-        strand-badge used
-    ">
-        USED
-    </span>
-    `
-)
+            : `
+            <span class="
+                strand-badge used
+            ">
+                USED
+            </span>
+            `
+        )
+    )
 
-                ? `
-                <span class="
-                    strand-badge splitter
-                ">
-                    SPL
-                </span>
-                `
-
-                : `
-                <span class="
-                    strand-badge used
-                ">
-                    USED
-                </span>
-                `
-            )
-
-            : ""
-        }
+    : ""
+}
 
     </div>
 
@@ -2110,9 +2077,9 @@ function handleSplitterDrop(
 }
 
 function getOutStrandUsage(
-    cableName,
-    buffer,
-    strand
+    outCable,
+    outBuffer,
+    outStrand
 ){
 
     return workspaceState.mappings.find(
@@ -2128,19 +2095,19 @@ function getOutStrandUsage(
 
             &&
 
-            m.outCable === cableName
+            m.outCable === outCable
 
             &&
 
             Number(
                 m.outBuffer
-            ) === Number(buffer)
+            ) === Number(outBuffer)
 
             &&
 
             Number(
                 m.outStrand
-            ) === Number(strand)
+            ) === Number(outStrand)
     );
 }
 
@@ -2158,6 +2125,21 @@ function handleStrandDrop(
                 "text/plain"
             )
         );
+
+    if(
+
+    isOutBufferUsed(
+        data.outCable,
+        data.outBuffer
+    )
+){
+
+    alert(
+        "That OUT buffer is already assigned."
+    );
+
+    return;
+}
 
     if(data.type!=="strand")
         return;
@@ -2281,6 +2263,8 @@ const mapping = {
     );
 
     renderInCable();
+    renderPools();
+
 }
 
 function updateDescription(
@@ -2328,7 +2312,11 @@ function isOutBufferUsed(
 
             &&
 
-            m.outCableName === cableName
+            (
+                m.outCableName === cableName ||
+
+                m.outCable === cableName
+            )
 
             &&
 
