@@ -766,7 +766,7 @@ const cable = {
 
             workspaceState.mappings.push({
                 buffer:b,
-                outCable:"THROUGH-"+id,
+                outCable:cable.cableName,
                 outBuffer:b,
                 label:
                     "THROUGH-"+id+
@@ -2232,9 +2232,9 @@ const mapping = {
 
     buffer:inBuffer,
 
-    outCable:data.cableName,
+    outCable:data.outCableName,
 
-    outBuffer:data.buffer,
+    outBuffer:data.outBuffer,
 
     label:
         data.cableName +
