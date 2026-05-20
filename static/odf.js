@@ -35,7 +35,23 @@ function updatePortField(
         );
     }
 
-    existing[field] = value;
+   existing[field] = value;
+
+if(field==="feederCable"){
+
+    const cable =
+        getCableInfo(value);
+
+    if(cable){
+
+        existing.destinationClosure =
+
+            cable.destinationClosure || "";
+    }
+}
+
+renderODF();
+
 }
 
 async function saveODF(){
@@ -72,6 +88,16 @@ async function saveODF(){
         alert("Saved");
     }
 }
+
+function getCableInfo(
+    cableName
+){
+
+    return cableRegistry.find(
+        c=>c.cableName===cableName
+    );
+}
+
 
 function renderODF(){
 
@@ -189,7 +215,15 @@ onchange="
 </option>
 
 ${
-    cableRegistry.map(
+    cableRegistry
+.filter(
+    cable=>
+
+        cable.role==="feeder" ||
+
+        cable.role==="through"
+)
+.map(
         cable=>`
 
 <option

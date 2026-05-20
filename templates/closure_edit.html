@@ -284,6 +284,42 @@ function createInCable(){
     renderAll();
 }
 
+function isOutStrandUsed(
+    outCable,
+    outBuffer,
+    outStrand
+){
+
+    return workspaceState.mappings.some(
+
+        m =>
+
+            (
+                m.mappingType === "strand" ||
+
+                m.mappingType ===
+                "splitter-output"
+            )
+
+            &&
+
+            m.outCable === outCable
+
+            &&
+
+            Number(
+                m.outBuffer
+            ) === Number(outBuffer)
+
+            &&
+
+            Number(
+                m.outStrand
+            ) === Number(outStrand)
+    );
+}
+
+
 function getStrandMapping(
     inBuffer,
     inStrand
@@ -1525,11 +1561,18 @@ function renderPools(){
                 const color =
                     COLORS[(b-1)%12][1];
 
+                const bufferUsed =
+    isOutBufferUsed(
+        cable.cableName,
+        b
+    );
+
                 html += `
 
                 <div class="
-                    pool-item
-                ">
+    pool-item
+    ${bufferUsed ? 'buffer-used' : ''}
+">
 
                     <div class="
                         color-col
@@ -1561,6 +1604,20 @@ function renderPools(){
 
                             Buffer ${b}
 
+${
+    bufferUsed
+
+    ? `
+    <span class="
+        strand-badge used
+    ">
+        BUFFER USED
+    </span>
+    `
+
+    : ""
+}
+
                         </div>
                 `;
 
@@ -1572,52 +1629,143 @@ for(let s=1;s<=12;s++){
     const strandName =
         COLORS[s-1][0];
 
-    const strandUsed =
+const strandUsage =
     getOutStrandUsage(
-        cable.cableName || ("OUT-"+cable.id),
+        cable.cableName,
         b,
         s
     );
 
-    html += `
+const strandUsed =
+    !!strandUsage ||
+    bufferUsed;
 
-    <div
+const strandIsSplitter =
+    strandUsage &&
+    strandUsage.mappingType ===
+    "splitter-output";
 
-    class="
-    strand-pool-item
-    ${strandUsed ? 'strand-used' : ''}
+const strandLockedByBuffer =
+    bufferUsed &&
+    !strandUsage;
+
+
+  html += `
+
+<div
+
+class="
+strand-pool-item
+${strandUsed ? 'used' : ''}
 "
 
-    draggable="true"
+draggable="${
+    strandUsed
+    ? "false"
+    : "true"
+}"
 
-    ondragstart="
-        dragStrandStart(
-            event,
-            '${cable.cableName || ("OUT-"+cable.id)}',
-            ${b},
-            ${s}
-        )
+ondragstart="
+    dragStrandStart(
+        event,
+        '${cable.cableName || ("OUT-"+cable.id)}',
+        ${b},
+        ${s}
+    )
+">
+
+    <div style="
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        width:100%;
     ">
 
-        <div
-        class="strand-mini-color"
-
-        style="
-            background:${strandColor}
+        <div style="
+            display:flex;
+            align-items:center;
+            gap:8px;
         ">
+
+            <div
+            class="strand-mini-color"
+
+            style="
+                background:${strandColor}
+            ">
+            </div>
+
+            <span>
+
+                ${s}
+                -
+                ${strandName}
+
+            </span>
+
         </div>
 
-        <span>
+        ${
+            strandUsed
 
-            ${s}
-            -
-            ${strandName}
+            ? (
 
-        </span>
+                strandLockedByBuffer
+
+? `
+<span class="
+    strand-badge used
+">
+    BUF
+</span>
+`
+
+: (
+
+    strandIsSplitter
+
+    ? `
+    <span class="
+        strand-badge splitter
+    ">
+        SPL
+    </span>
+    `
+
+    : `
+    <span class="
+        strand-badge used
+    ">
+        USED
+    </span>
+    `
+)
+
+                ? `
+                <span class="
+                    strand-badge splitter
+                ">
+                    SPL
+                </span>
+                `
+
+                : `
+                <span class="
+                    strand-badge used
+                ">
+                    USED
+                </span>
+                `
+            )
+
+            : ""
+        }
 
     </div>
 
-    `;
+</div>
+
+`;
 }
 
                 html += `
@@ -1921,6 +2069,22 @@ function handleSplitterDrop(
             )
         );
 
+        if(
+
+    isOutStrandUsed(
+        data.outCable,
+        data.outBuffer,
+        data.outStrand
+    )
+){
+
+    alert(
+        "That OUT strand is already used."
+    );
+
+    return;
+}
+
     workspaceState.mappings.push({
 
         mappingType:"splitter-output",
@@ -1943,6 +2107,41 @@ function handleSplitterDrop(
     renderInCable();
 
     renderPools();
+}
+
+function getOutStrandUsage(
+    cableName,
+    buffer,
+    strand
+){
+
+    return workspaceState.mappings.find(
+
+        m =>
+
+            (
+                m.mappingType === "strand" ||
+
+                m.mappingType ===
+                "splitter-output"
+            )
+
+            &&
+
+            m.outCable === cableName
+
+            &&
+
+            Number(
+                m.outBuffer
+            ) === Number(buffer)
+
+            &&
+
+            Number(
+                m.outStrand
+            ) === Number(strand)
+    );
 }
 
 function handleStrandDrop(
@@ -1988,6 +2187,22 @@ function handleStrandDrop(
             )
         );
 
+    if(
+
+        isOutStrandUsed(
+            data.outCable,
+            data.outBuffer,
+            data.outStrand
+        )
+    ){
+
+        alert(
+            "That OUT strand is already used."
+        );
+
+        return;
+    }
+
     workspaceState.mappings.push({
 
         mappingType:"strand",
@@ -2008,6 +2223,7 @@ function handleStrandDrop(
     });
 
     renderInCable();
+    renderPools();
 }
 
 function handleDrop(
@@ -2097,6 +2313,29 @@ function updateStrandDescription(
 
         mapping.description = value;
     }
+}
+
+function isOutBufferUsed(
+    cableName,
+    buffer
+){
+
+    return workspaceState.mappings.some(
+
+        m =>
+
+            m.mappingType === "buffer"
+
+            &&
+
+            m.outCableName === cableName
+
+            &&
+
+            Number(
+                m.outBuffer
+            ) === Number(buffer)
+    );
 }
 
 function updateSplitterOutputDescription(

@@ -322,3 +322,42 @@ color:#64748b;
 
     gap:10px;
 }
+
+.strand-pool-item.used{
+
+    opacity:0.45;
+
+    cursor:not-allowed;
+}
+
+.strand-badge{
+
+    font-size:10px;
+
+    padding:2px 6px;
+
+    border-radius:4px;
+
+    font-weight:600;
+}
+
+.strand-badge.used{
+
+    background:#dc2626;
+
+    color:white;
+}
+
+.strand-badge.splitter{
+
+    background:#7c3aed;
+
+    color:white;
+}
+
+.buffer-used{
+
+    border:1px solid #dc2626;
+
+    background:#fef2f2;
+}

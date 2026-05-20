@@ -1,37 +1,27 @@
 [
   {
-    "id": "8d7ef9f0-a14b-4282-a568-c6c545973d48",
+    "id": "71580637-6a5e-4877-b3d7-27be65331641",
     "odfName": "New ODF",
     "location": "",
-    "totalPorts": 144,
+    "totalPorts": 48,
     "ports": []
   },
   {
-    "id": "b3a8748b-8fd9-4eaa-9978-cbe7f23271a2",
-    "odfName": "New ODF",
+    "id": "05bfe711-ca17-43aa-a1eb-e1adde4af553",
     "location": "",
-    "totalPorts": 144,
-    "ports": []
-  },
-  {
-    "id": "0242e0a2-477a-4b11-a5ac-6dba35414c10",
     "odfName": "New ODF",
-    "location": "",
-    "totalPorts": 144,
-    "ports": []
-  },
-  {
-    "id": "e8e95378-9cbd-46f7-98df-11be3feadd3f",
-    "odfName": "New ODF",
-    "location": "",
-    "totalPorts": 144,
-    "ports": []
-  },
-  {
-    "id": "e03c82de-c8e3-4102-b1c6-30ceab4a4ef5",
-    "odfName": "New ODF",
-    "location": "",
-    "totalPorts": 144,
-    "ports": []
+    "ports": [
+      {
+        "buffer": "",
+        "description": "",
+        "destinationClosure": "D01",
+        "feederCable": "CUR04901A",
+        "olt": "CUR04901",
+        "pon": "0/1/0",
+        "port": 1,
+        "strand": ""
+      }
+    ],
+    "totalPorts": 48
   }
 ]
