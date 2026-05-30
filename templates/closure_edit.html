@@ -765,12 +765,13 @@ const cable = {
         if(!existing){
 
             workspaceState.mappings.push({
+                mappingType:"buffer",
                 buffer:b,
                 outCable:cable.cableName,
                 outBuffer:b,
                 label:
-                    "THROUGH-"+id+
-                    " • Buffer "+b,
+                    cable.cableName +
+                    " • Buffer " + b,
                 description:"",
                 status:"Straight Through"
             });

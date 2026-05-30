@@ -1,25 +1,179 @@
 [
   {
-    "id": "71580637-6a5e-4877-b3d7-27be65331641",
-    "odfName": "New ODF",
+    "id": "a9b1449d-ba8a-4064-b4c2-4e25a1ea0101",
     "location": "",
-    "totalPorts": 48,
-    "ports": []
-  },
-  {
-    "id": "05bfe711-ca17-43aa-a1eb-e1adde4af553",
-    "location": "",
-    "odfName": "New ODF",
+    "odfName": "CUR00501-SP1",
     "ports": [
       {
-        "buffer": "",
-        "description": "",
-        "destinationClosure": "D01",
-        "feederCable": "CUR04901A",
-        "olt": "CUR04901",
-        "pon": "0/1/0",
         "port": 1,
-        "strand": ""
+        "feederCable": "CUR00501A",
+        "buffer": 1,
+        "strand": 1,
+        "status": "Assigned",
+        "olt": "CUR00501OLT01",
+        "pon": "0/1/0",
+        "destinationClosure": "CUR00501A/S01"
+      },
+      {
+        "port": 2,
+        "feederCable": "CUR00501A",
+        "buffer": 1,
+        "strand": 2,
+        "status": "Assigned"
+      },
+      {
+        "port": 3,
+        "feederCable": "CUR00501A",
+        "buffer": 1,
+        "strand": 3,
+        "status": "Assigned"
+      },
+      {
+        "port": 4,
+        "feederCable": "CUR00501A",
+        "buffer": 1,
+        "strand": 4,
+        "status": "Assigned"
+      },
+      {
+        "port": 5,
+        "feederCable": "CUR00501A",
+        "buffer": 1,
+        "strand": 5,
+        "status": "Assigned"
+      },
+      {
+        "port": 6,
+        "feederCable": "CUR00501A",
+        "buffer": 1,
+        "strand": 6,
+        "status": "Assigned"
+      },
+      {
+        "port": 7,
+        "feederCable": "CUR00501A",
+        "buffer": 1,
+        "strand": 7,
+        "status": "Assigned"
+      },
+      {
+        "port": 8,
+        "feederCable": "CUR00501A",
+        "buffer": 1,
+        "strand": 8,
+        "status": "Assigned"
+      },
+      {
+        "port": 9,
+        "feederCable": "CUR00501A",
+        "buffer": 1,
+        "strand": 9,
+        "status": "Assigned"
+      },
+      {
+        "port": 10,
+        "feederCable": "CUR00501A",
+        "buffer": 1,
+        "strand": 10,
+        "status": "Assigned"
+      },
+      {
+        "port": 11,
+        "feederCable": "CUR00501A",
+        "buffer": 1,
+        "strand": 11,
+        "status": "Assigned"
+      },
+      {
+        "port": 12,
+        "feederCable": "CUR00501A",
+        "buffer": 1,
+        "strand": 12,
+        "status": "Assigned"
+      },
+      {
+        "port": 13,
+        "feederCable": "CUR00501A",
+        "buffer": 2,
+        "strand": 1,
+        "status": "Assigned"
+      },
+      {
+        "port": 14,
+        "feederCable": "CUR00501A",
+        "buffer": 2,
+        "strand": 2,
+        "status": "Assigned"
+      },
+      {
+        "port": 15,
+        "feederCable": "CUR00501A",
+        "buffer": 2,
+        "strand": 3,
+        "status": "Assigned"
+      },
+      {
+        "port": 16,
+        "feederCable": "CUR00501A",
+        "buffer": 2,
+        "strand": 4,
+        "status": "Assigned"
+      },
+      {
+        "port": 17,
+        "feederCable": "CUR00501A",
+        "buffer": 2,
+        "strand": 5,
+        "status": "Assigned"
+      },
+      {
+        "port": 18,
+        "feederCable": "CUR00501A",
+        "buffer": 2,
+        "strand": 6,
+        "status": "Assigned"
+      },
+      {
+        "port": 19,
+        "feederCable": "CUR00501A",
+        "buffer": 2,
+        "strand": 7,
+        "status": "Assigned"
+      },
+      {
+        "port": 20,
+        "feederCable": "CUR00501A",
+        "buffer": 2,
+        "strand": 8,
+        "status": "Assigned"
+      },
+      {
+        "port": 21,
+        "feederCable": "CUR00501A",
+        "buffer": 2,
+        "strand": 9,
+        "status": "Assigned"
+      },
+      {
+        "port": 22,
+        "feederCable": "CUR00501A",
+        "buffer": 2,
+        "strand": 10,
+        "status": "Assigned"
+      },
+      {
+        "port": 23,
+        "feederCable": "CUR00501A",
+        "buffer": 2,
+        "strand": 11,
+        "status": "Assigned"
+      },
+      {
+        "port": 24,
+        "feederCable": "CUR00501A",
+        "buffer": 2,
+        "strand": 12,
+        "status": "Assigned"
       }
     ],
     "totalPorts": 48
